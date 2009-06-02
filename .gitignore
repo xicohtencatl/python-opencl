@@ -1,0 +1,5 @@
+*.so
+opencl.c
+*.swp
+build/
+*.pyx
