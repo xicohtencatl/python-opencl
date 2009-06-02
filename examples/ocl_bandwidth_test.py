@@ -16,10 +16,11 @@ DEFAULT_INCREMENT   = 1<<22         # 4M
 DEVICE_TO_HOST, HOST_TO_DEVICE, DEVICE_TO_DEVICE = range(3)
 
 
-def test_bandwidth_quick(size, kind):
-    test_bandwidth_range(size, size, DEFAULT_INCREMENT, kind)
 
-def test_bandwidth_range(start, end, increment, kind):
+def test_bandwidth_quick(size, kind, devices):
+    test_bandwidth_range(size, size, DEFAULT_INCREMENT, kind, devices)
+
+def test_bandwidth_range(start, end, increment, kind, devices):
     count = 1 + ((end - start) / increment)
     mem_sizes = ndarray(count, dtype=int)
     bandwidths = zeros(count, dtype=float)
@@ -34,18 +35,24 @@ def test_bandwidth_range(start, end, increment, kind):
     else:
         print ' Device to Device Bandwidth'
 
-    # Run each of the copies
-    for i in range(count):
-        mem_sizes[i] = start + i * increment
-        if kind == DEVICE_TO_HOST:
-            bandwidths[i] += test_device_to_host_transfer(mem_sizes[i])
-        elif kind == HOST_TO_DEVICE:
-            bandwidths[i] += test_host_to_device_transfer(mem_sizes[i])
-        else:
-            bandwidths[i] += test_device_to_device_transfer(mem_sizes[i])
-        print '...'
+    # Use the device asked by the user
+    if True:
+        queue = opencl.CommandQueue(ctx, devices[0])
+        # Run each of the copies
+        for i in range(count):
+            mem_sizes[i] = start + i * increment
+            if kind == DEVICE_TO_HOST:
+                bandwidths[i] += test_device_to_host_transfer(mem_sizes[i],
+                                                              queue)
+            elif kind == HOST_TO_DEVICE:
+                bandwidths[i] += test_host_to_device_transfer(mem_sizes[i],
+                                                              queue)
+            else:
+                bandwidths[i] += test_device_to_device_transfer(mem_sizes[i],
+                                                                queue)
+            print '...'
 
-def test_host_to_device_transfer(mem_size):
+def test_host_to_device_transfer(mem_size, queue):
     # Allocate host memory
     h_idata = arange(mem_size, dtype='uint8')
 
@@ -53,13 +60,18 @@ def test_host_to_device_transfer(mem_size):
     mem_flags = opencl.MEM_READ_ONLY
     if True:
         h_odata = ndarray(mem_size, dtype='uint8')
+        print h_odata
         mem_flags |= opencl.MEM_USE_HOST_PTR
         d_odata = opencl.Buffer(ctx, h_odata, mem_flags)
+    t, c = time(), clock()
     if True:
-        for i in range(MEMCOPY_ITERATIONS):
-            queue.enqueue_write_buffer(d_odata, False, 0, mem_size, h_idata,
-                                       0, None, None)
+        for i in range(0):#MEMCOPY_ITERATIONS):
+            queue.enqueue_write_buffer(d_odata, h_idata)
         queue.finish()
+    et, ec = time() - t, clock() - c
+    print et, ec
+
+    return et
 
 
 if __name__ == '__main__':
@@ -72,4 +84,4 @@ if __name__ == '__main__':
     ctx = opencl.Context(opencl.DEVICE_TYPE_GPU)
     if True:
         print ' Quick Mode'
-        test_bandwidth_quick(DEFAULT_SIZE, HOST_TO_DEVICE)
+        test_bandwidth_quick(DEFAULT_SIZE, HOST_TO_DEVICE, devices)

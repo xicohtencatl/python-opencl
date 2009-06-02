@@ -8,14 +8,8 @@ Cython wrapper around the OpenCL library.
 
 include "stdlib.pxi"
 
-cdef extern from "arrayobject.h":
-    ctypedef int intp
-    ctypedef extern class numpy.ndarray [object PyArrayObject]:
-        cdef char *data
-        cdef int nd
-        cdef intp *dimensions
-        cdef intp *strides
-        cdef int flags
+include "numpy.pxd"
+
 
 # cl_device_type - bitfield
 DEVICE_TYPE_DEFAULT = 1<<0
@@ -110,6 +104,7 @@ cdef extern from "CL/cl.h":
                                        void*,
                                        cl_int*)
     cl_int clGetContextInfo(cl_context, cl_context_info, size_t, void*, size_t*)
+    cl_int clReleaseContext(cl_context)
 
     # Command Queues
     cl_command_queue clCreateCommandQueue(cl_context, cl_device_id,
@@ -117,6 +112,9 @@ cdef extern from "CL/cl.h":
                                           cl_int*)
     cl_int clFlush(cl_command_queue)
     cl_int clFinish(cl_command_queue)
+    cl_int clEnqueueWriteBuffer(cl_command_queue, cl_mem, cl_bool, size_t,
+                                size_t, void *, cl_uint, cl_event *, cl_event *)
+    cl_int clReleaseCommandQueue(cl_command_queue)
 
     # Device API
     cl_int clGetDeviceIDs(cl_platform_id, cl_device_type, cl_uint,
@@ -126,6 +124,7 @@ cdef extern from "CL/cl.h":
 
     # Memory Object APIs
     cl_mem clCreateBuffer(cl_context, cl_mem_flags, size_t, void *, cl_int *)
+    cl_int clReleaseMemObject(cl_mem)
 
 class OpenCLError(BaseException):
     codes = {0: 'Success',
@@ -153,7 +152,29 @@ class OpenCLError(BaseException):
              -37: 'Invalid host pointer',
              -38: 'Invalid memory objet',
              -39: 'Invalid image format description',
-             -40: 'Invalid image size'}
+             -40: 'Invalid image size',
+             -41: 'Invalid sampler',
+             -42: 'Invalid binary',
+             -43: 'Invalid build options',
+             -44: 'Invalid program',
+             -45: 'Invalid program executable',
+             -46: 'Invalid kernel name',
+             -47: 'Invalid kernel definition',
+             -48: 'Invalid kernel',
+             -49: 'Invalid argument index',
+             -50: 'Invalid argument value',
+             -51: 'Invalid argument size',
+             -52: 'Invalid kernel arguments',
+             -53: 'Invalid work dimension',
+             -54: 'Invalid work group size',
+             -55: 'Invalid work item size',
+             -56: 'Invalid global offset',
+             -57: 'Invalid event wait list',
+             -58: 'Invalid event',
+             -59: 'Invalid operation',
+             -60: 'Invalid GL object',
+             -61: 'Invalid buffer size',
+             -62: 'Invalid MIP level'}
     def __init__(self, code):
         self.code = code
     def __str__(self):
@@ -193,7 +214,7 @@ def device_name(device):
 cdef class Context:
     cdef cl_context context
 
-    def __init__(self, cl_device_type type=DEVICE_TYPE_DEFAULT):
+    def __cinit__(self, cl_device_type type=DEVICE_TYPE_DEFAULT):
         cdef cl_int err
         self.context = clCreateContextFromType(<cl_context_properties*>0,
                                           type,
@@ -203,6 +224,15 @@ cdef class Context:
         if err != 0:
             raise OpenCLError(err)
         print 'Context', <long>self.context
+
+    def __dealloc__(self):
+        '''
+        Decrements the context reference count.
+        '''
+        cdef cl_int err
+        err = clReleaseContext(self.context)
+        if err != 0:
+            raise OpenCLError(err)
 
     def get_devices_count(self):
         cdef cl_int err
@@ -232,7 +262,7 @@ cdef class Context:
 
 cdef class CommandQueue:
     cdef cl_command_queue queue
-    def __init__(self, Context ctx, device=None):
+    def __cinit__(self, Context ctx, device=None):
         if device is None:
             device = ctx.get_devices()[0]
 
@@ -241,6 +271,15 @@ cdef class CommandQueue:
                                           <cl_device_id>device,
                                           <cl_command_queue_properties>0,
                                           &err)
+        if err != 0:
+            raise OpenCLError(err)
+
+    def __dealloc__(self):
+        '''
+        Decrements the queue reference count.
+        '''
+        cdef cl_int err
+        err = clReleaseCommandQueue(self.queue)
         if err != 0:
             raise OpenCLError(err)
 
@@ -262,17 +301,33 @@ cdef class CommandQueue:
         if err != 0:
             raise OpenCLError(err)
 
+    def enqueue_write_buffer(self, buffer, ndarray data):
+        print 'bla'
+        size = 1
+        for i in range(data.ndim):
+            size *= data.shape[i]
+        print 'sz', size
+        cdef cl_int err
+        err = clEnqueueWriteBuffer(self.queue, buffer.c_obj(), False,
+                                   0, size, PyArray_DATA(data),
+                                   0, <cl_event *>0, <cl_event *>0)
+        if err != 0:
+            raise OpenCLError(err)
+
 cdef class Buffer:
     cdef cl_mem mem
-    def __init__(self, Context ctx, size_or_data, mem_flags=MEM_READ_WRITE):
+    def __cinit__(self, Context ctx, size_or_data, mem_flags=MEM_READ_WRITE):
         cdef void * c_data
+        cdef int size
         # Handle NumPy array
         if isinstance(size_or_data, ndarray):
             # TODO: assert contiguousity
             #data = ascontiguousarray(size_or_data)
             data = <ndarray>size_or_data
-            c_data = <void *>data.data
-            size = data.size
+            c_data = PyArray_DATA(data)
+            size = 1
+            for i in range(data.ndim):
+                size *= data.shape[i]
         else:
             c_data = <void *>None
             size = int(size_or_data)
@@ -282,4 +337,15 @@ cdef class Buffer:
                                   c_data, &err)
         if err != 0:
             raise OpenCLError(err)
+        print 'Amem', self.mem
+
+    def __dealloc__(self):
+        cdef cl_int err
+        print 'Dmem', self.mem
+        err = clReleaseMemObject(self.mem)
+        if err != 0:
+            raise OpenCLError(err)
+
+    def c_obj(self):
+        return <int>self.mem
 

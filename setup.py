@@ -24,9 +24,11 @@ from Cython.Distutils import build_ext
 #     )
 
 opencl_module = Extension('opencl', ['opencl.pyx'],
-                          include_dirs=['/usr/lib64/python2.6/site-packages/numpy/core/include/numpy'],
+                          include_dirs=['/usr/lib64/python2.6/site-packages/numpy/core/include'],
                           libraries=['OpenCL'],
-                          library_dirs=['/usr/lib/nvidia-opencl/'])
+                          library_dirs=['/usr/lib/nvidia-opencl/'],
+                          extra_link_args=['-g'],
+                          extra_compile_args=['-g'])
 
 setup(name='opencl',
       version='0.0.1',
