@@ -24,9 +24,11 @@ from Cython.Distutils import build_ext
 #     )
 
 opencl_module = Extension('opencl', ['opencl.pyx'],
-                          include_dirs=['/usr/lib64/python2.6/site-packages/numpy/core/include'],
+                          include_dirs=['/usr/lib64/python2.6/site-packages/numpy/core/include',
+                                       '/usr/lib64/python2.5/site-packages/numpy/core/include',
+                                       '/home/etlapale/NVIDIA_GPU_Computing_SDK/OpenCL/common/inc'],
                           libraries=['OpenCL'],
-                          library_dirs=['/usr/lib/nvidia-opencl/'],
+                          library_dirs=['/home/etlapale/nosave/ati-stream-sdk-v2.0-beta2-lnx64/lib/x86_64'],
                           extra_link_args=['-g'],
                           extra_compile_args=['-g'])
 
