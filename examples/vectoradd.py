@@ -44,7 +44,7 @@ if __name__ == '__main__':
     prog = opencl.Program(opencl_source)
 
     # Extract the kernel and execute it
-    print prog.vector_add(host_vector_out, host_vector_1, host_vector_2)
+    prog.vector_add(host_vector_out, host_vector_1, host_vector_2)
 
     # Print out the results for fun.
     print 'Results:'

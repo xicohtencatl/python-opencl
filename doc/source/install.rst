@@ -18,6 +18,7 @@ After grabbing its sources, you can simply build and install it using a classica
 
     $ python setup.py install
 
+You may also want to specify include directories or library path with ``-I`` or ``-L``.
 For more information, use the ``--help`` option.
 
 .. _`Python::OpenCL`: http://python-opencl.next-touch.com

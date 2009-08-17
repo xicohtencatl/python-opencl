@@ -706,7 +706,6 @@ cdef class Device:
         return self.id
 
 def get_device_ids(platform, type=DEVICE_TYPE_DEFAULT):
-    print '== Get devices IDs'
     # Get devices count
     cdef cl_uint dev_count
     err = clGetDeviceIDs(<cl_platform_id>PLATFORM_NVIDIA, type, 0, <cl_device_id *>0,
@@ -742,7 +741,6 @@ cdef class Context:
                                           &err)
         if err != 0:
             raise OpenCLError(err)
-        print 'Context', <long>self.context
 
         self.devs = None
 
@@ -752,7 +750,6 @@ cdef class Context:
                 buggy = True
             else:
                 p = get_platforms()
-                print '"""', len(p), '>%s<' % p[0].name, ('%s' % p[0].name == u'NVIDIA')
                 if len(p) == 1 and p[0].name == 'NVIDIA':
                     buggy = True
                 else:
@@ -762,7 +759,6 @@ cdef class Context:
             self.ctx_devs_op = 0x1082
         else:
             self.ctx_devs_op = CONTEXT_DEVICES
-        print '""" Buggy:', self.buggy
 
     def __dealloc__(self):
         '''
@@ -791,7 +787,6 @@ cdef class Context:
 
         cdef cl_int err
         cdef cl_device_id *dev_mem = <cl_device_id *> malloc (dev_count*sizeof(cl_device_id))
-        print '""" DevOP', self.ctx_devs_op
         err = clGetContextInfo(self.context, self.ctx_devs_op,
                                dev_count*sizeof(cl_device_id),
                                dev_mem, <size_t *>0)
@@ -848,10 +843,8 @@ cdef class CommandQueue:
             props |= QUEUE_PROFILING_ENABLE
         self.properties = props
 
-        #print device.__class__
         self.queue = clCreateCommandQueue(context.c_obj(),
                                           device.c_obj(), props, &err)
-        #print "Queue:", ctx.context, device, '=>', self.queue
         if err:
             raise OpenCLError(err)
 
@@ -910,7 +903,6 @@ cdef class CommandQueue:
             work_dim = len(global_work_size)
             c_gws = <size_t *> malloc (work_dim * sizeof (size_t))
             for i, x in enumerate(global_work_size):
-                print x.__class__
                 c_gws[i] = x
         else:
             c_gws = NULL
@@ -918,23 +910,17 @@ cdef class CommandQueue:
             #work_dim = len(local_work_size)
             c_lws = <size_t *> malloc (work_dim * sizeof (size_t))
             for i, x in enumerate(local_work_size):
-                print x.__class__
                 c_lws[i] = x
         else:
             c_lws = NULL
-        #print 'Enqueing', work_dim, global_work_size, local_work_size
-        #for x in global_work_size:
-        #    print ' ', x
         args = [hex(self.queue), hex(krnl.c_obj), work_dim,
                 None, global_work_size, local_work_size, 0, None, None]
         regs = 'rdi rsi rdx rcx r8 r9'.split()
-        print zip(regs, args)
         err = clEnqueueNDRangeKernel(self.queue, krnl.c_obj, work_dim,
                                      NULL, c_gws, c_lws,
                                      0, NULL, NULL)
         if c_gws:
             free(c_gws)
-        print '   [dfsf9s] DONE'
         if err:
             raise OpenCLError(err)
 
@@ -952,7 +938,6 @@ cdef class Buffer:
         cdef int err
 
         if context is None:
-            print '[Buffer::__cinit__] Using default context'
             context = default_context()
 
         # Handle NumPy array
@@ -963,11 +948,9 @@ cdef class Buffer:
                 mem_flags = MEM_READ_WRITE | MEM_USE_HOST_PTR
             #data = <ndarray>size_or_data
             data = size_or_data
-            print data.dtype, data.shape, data.nbytes
             self.ndarray = data
             c_data = PyArray_DATA(data)
             self.nbytes = data.nbytes
-            print '  [dfwer] ndim', data.ndim, data.nbytes
             self.dtype = data.dtype
             self.shape = data.shape
         else:
@@ -975,16 +958,11 @@ cdef class Buffer:
                 mem_flags = MEM_READ_WRITE | MEM_ALLOC_HOST_PTR
             c_data = NULL
             self.nbytes = int(size_or_data)
-
-        print '[Buffer::__cinit__] Ctx:', context.c_obj(), 'fl: ', mem_flags, \
-                'sz:', self.nbytes
         self.mem = clCreateBuffer(context.c_obj(), <cl_mem_flags>mem_flags,
                                   self.nbytes,
                                   c_data, &err)
         if err != 0:
-            print '>>>>>>>>>> Could not create!'
             raise OpenCLError(err)
-        print 'Amem', self.mem
 
     #def __dealloc__(self):
     #    cdef cl_int err
@@ -1070,8 +1048,6 @@ cdef class Program:
         #cdef char* c_options = NULL
         #if options:
         #    c_options = options
-        print self.prog, dev_count
-        print 'clBuildProgram'
         err = clBuildProgram(self.prog, dev_count, NULL, NULL,
                              NULL, NULL)
         if err:
@@ -1087,7 +1063,6 @@ cdef class Program:
         return Kernel(self, name)
 
     def __getattr__(self, name):
-        print 'Program.__getattr__(%s)' % name
         if name == 'prog':
             raise AttributeError, name
         return self.create_kernel(name)
@@ -1100,7 +1075,6 @@ cdef class Kernel:
     cdef public long work_size
     def __cinit__(self, prog, name):
         cdef cl_int err
-        print 'clCreateKernel'
         self.c_obj = clCreateKernel(prog.c_obj(), name, &err)
         if err:
             raise OpenCLError(err)
@@ -1116,9 +1090,7 @@ cdef class Kernel:
         elif isinstance(arg, int):
             arg_size = sizeof(int)
             arg_value = <void *><int>arg
-            print '[Kernel::set_arg] sz: %d' % arg_size
         else:
-            print sizeof(arg)
             raise OpenCLError('Unmanaged type as kernel argument: %s' %
                               arg.__class__)
         err = clSetKernelArg(self.c_obj, idx, arg_size, &arg_value)
@@ -1148,7 +1120,6 @@ cdef class Kernel:
         The allocated global memory work size is simply the sum of all
         the sizes of the Buffer objects.
         '''
-        print 'Calling kernel!'
         # If we receive ndarrays, cast them
         rargs = []
         ro = []
@@ -1160,13 +1131,9 @@ cdef class Kernel:
             else:
                 rargs.append(arg)
         # Define kernel arguments
-        print '.. Setting arguments...'
         self.set_args(rargs)
-        print '.. Enqueing the call...'
         # Enqueue the call
-        print '     ws:', self.work_size
         default_queue().enqueue_nd_range_kernel(self, [self.work_size])
-        print '.. Reading back results...'
         # Read back results if ndarrays given
         for arr, buf in ro:
             buf.read(arr)
