@@ -569,6 +569,8 @@ cdef class Platform:
         self.devs = None
     def __getattr__(self, name):
         cdef size_t sz
+        cdef char *c_val
+
         if name in self.infos:
             return self.infos[name]
         if name in self.info_id:
@@ -576,12 +578,13 @@ cdef class Platform:
             err = clGetPlatformInfo(self.id, info, 0, NULL, &sz)
             if err:
                 raise OpenCLError(err)
-            #val = (c_char * sz.value)()
-            val = ' ' * sz
-            err = clGetPlatformInfo(self.id, info, sz, <void *><char *>val, NULL)
+            c_val = <char *> malloc (sz * sizeof (char))
+            err = clGetPlatformInfo(self.id, info, sz, <void *>c_val, NULL)
             if err:
                 raise OpenCLError(err)
-            return val
+            ans = str(c_val)
+            free(c_val)
+            return ans
         if name == 'devices':
             return self._devices()
         raise AttributeError, name
@@ -645,7 +648,7 @@ cdef class Context:
     cdef object buggy
     cdef object ctx_devs_op
 
-    def __cinit__(self, cl_device_type type=DEVICE_TYPE_DEFAULT):
+    def __cinit__(self, cl_device_type type=DEVICE_TYPE_DEFAULT, buggy='auto'):
         cdef cl_int err
         self.context = clCreateContextFromType(<cl_context_properties*>0,
                                           type,
@@ -664,6 +667,7 @@ cdef class Context:
                 buggy = True
             else:
                 p = get_platforms()
+                print '"""', len(p), '>%s<' % p[0].name, ('%s' % p[0].name == u'NVIDIA')
                 if len(p) == 1 and p[0].name == 'NVIDIA':
                     buggy = True
                 else:
@@ -673,6 +677,7 @@ cdef class Context:
             self.ctx_devs_op = 0x1082
         else:
             self.ctx_devs_op = CONTEXT_DEVICES
+        print '""" Buggy:', self.buggy
 
     def __dealloc__(self):
         '''
@@ -690,7 +695,7 @@ cdef class Context:
     def get_devices_count(self):
         cdef cl_int err
         cdef size_t ret
-        err = clGetContextInfo(self.context, CONTEXT_DEVICES,
+        err = clGetContextInfo(self.context, self.ctx_devs_op,
                                <size_t>0, <void*>0, &ret)
         if err != 0:
             raise OpenCLError(err)
@@ -701,7 +706,8 @@ cdef class Context:
 
         cdef cl_int err
         cdef cl_device_id *dev_mem = <cl_device_id *> malloc (dev_count*sizeof(cl_device_id))
-        err = clGetContextInfo(self.context, CONTEXT_DEVICES,
+        print '""" DevOP', self.ctx_devs_op
+        err = clGetContextInfo(self.context, self.ctx_devs_op,
                                dev_count*sizeof(cl_device_id),
                                dev_mem, <size_t *>0)
         if err != 0:
@@ -1113,7 +1119,7 @@ def get_platforms():
         raise OpenCLError(err)
     #return [Platform(x) for x in plats]
     ans = []
-    for i in count:
+    for i in range(count):
         ans.append(Platform(plats[i]))
     free(plats)
     return ans
