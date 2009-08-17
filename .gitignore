@@ -3,3 +3,5 @@ opencl.c
 *.swp
 build/
 *.pyx
+MANIFEST
+dist/
