@@ -546,6 +546,29 @@ class OpenCLError(BaseException):
             return self.code
         return 'Unknown'
 
+ctypedef cl_int (*InfoGrabber) (long, cl_uint, size_t, void *, size_t *)
+
+
+cdef get_info(id, info, InfoGrabber func):
+    cdef int err
+    cdef size_t sz
+    cdef char *c_val
+    cdef InfoGrabber c_func
+    # Query info size
+    err = func(id, info, 0, NULL, &sz)
+    if err:
+        raise OpenCLError(err)
+    # Allocate memory for the info
+    c_val = <char *> malloc (sz * sizeof (char))
+    # Fetch info
+    err = func(id, info, sz, <void *> c_val, NULL)
+    if err:
+        raise OpenCLError(err)
+    # Return a Python object
+    ans = str(c_val)
+    free(c_val)
+    return ans
+
 cdef class Platform:
     '''
     Abstraction for an OpenCL platform.
@@ -556,8 +579,7 @@ cdef class Platform:
                'vendor': PLATFORM_VENDOR,
               }
 
-    cdef object id
-    cdef object infos
+    cdef public object id
     cdef object devs
 
     def __cinit__(self, id):
@@ -565,26 +587,13 @@ cdef class Platform:
         Wrap an OpenCL platform with the given ID.
         '''
         self.id = id
-        self.infos = {}
         self.devs = None
     def __getattr__(self, name):
         cdef size_t sz
         cdef char *c_val
 
-        if name in self.infos:
-            return self.infos[name]
         if name in self.info_id:
-            info = self.info_id[name]
-            err = clGetPlatformInfo(self.id, info, 0, NULL, &sz)
-            if err:
-                raise OpenCLError(err)
-            c_val = <char *> malloc (sz * sizeof (char))
-            err = clGetPlatformInfo(self.id, info, sz, <void *>c_val, NULL)
-            if err:
-                raise OpenCLError(err)
-            ans = str(c_val)
-            free(c_val)
-            return ans
+            return get_info(self.id, self.info_id[name], clGetPlatformInfo)
         if name == 'devices':
             return self._devices()
         raise AttributeError, name
@@ -601,13 +610,97 @@ cdef class Device:
     '''
     Abstraction class for OpenCL devices.
     '''
-    cdef int id
-    cdef object infos
+    cdef public object id
+
+    info_id = {
+        'type': ('cl_ulong', DEVICE_TYPE),
+        'vendor_id': ('cl_uint', DEVICE_VENDOR_ID),
+        'max_compute_units': ('cl_uint', DEVICE_MAX_COMPUTE_UNITS),
+        'max_work_item_dimensions': ('cl_uint', DEVICE_MAX_WORK_ITEM_DIMENSIONS),
+        'max_work_group_size': ('cl_uint', DEVICE_MAX_WORK_GROUP_SIZE),
+        'platform': ('cl_ulong', DEVICE_PLATFORM),
+        'preferred_vector_width_char': ('cl_uint', DEVICE_PREFERRED_VECTOR_WIDTH_CHAR),
+        'preferred_vector_width_short': ('cl_uint', DEVICE_PREFERRED_VECTOR_WIDTH_SHORT),
+        'preferred_vector_width_int': ('cl_uint', DEVICE_PREFERRED_VECTOR_WIDTH_INT),
+        'preferred_vector_width_long': ('cl_uint', DEVICE_PREFERRED_VECTOR_WIDTH_LONG),
+        'preferred_vector_width_float': ('cl_uint', DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT),
+        'preferred_vector_width_double': ('cl_uint', DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE),
+        'max_clock_frequency': ('cl_uint', DEVICE_MAX_CLOCK_FREQUENCY),
+        'address_bits': ('cl_uint', DEVICE_ADDRESS_BITS),
+        'max_mem_alloc_size': ('cl_uint', DEVICE_MAX_MEM_ALLOC_SIZE),
+        'image_support': ('cl_bool', DEVICE_IMAGE_SUPPORT),
+        'max_read_image_args': ('cl_uint', DEVICE_MAX_READ_IMAGE_ARGS),
+        'max_write_image_args': ('cl_uint', DEVICE_MAX_WRITE_IMAGE_ARGS),
+        'image2d_max_width': ('c_size_t', DEVICE_IMAGE2D_MAX_WIDTH),
+        'image2d_max_height': ('c_size_t', DEVICE_IMAGE2D_MAX_HEIGHT),
+        'image3d_max_width': ('c_size_t', DEVICE_IMAGE3D_MAX_WIDTH),
+        'image3d_max_height': ('c_size_t', DEVICE_IMAGE3D_MAX_HEIGHT),
+        'image3d_max_depth': ('c_size_t', DEVICE_IMAGE3D_MAX_DEPTH),
+        'max_samplers': ('cl_uint', DEVICE_MAX_SAMPLERS),
+        'max_parameters_size': ('c_size_t', DEVICE_MAX_PARAMETER_SIZE),
+        'mem_base_addr_align': ('cl_uint', DEVICE_MEM_BASE_ADDR_ALIGN),
+        'min_data_type_align_size': ('cl_uint', DEVICE_MIN_DATA_TYPE_ALIGN_SIZE),
+        'single_fp_config': ('cl_uint', DEVICE_SINGLE_FP_CONFIG),
+        'global_mem_cache_type': ('cl_uint', DEVICE_GLOBAL_MEM_CACHE_TYPE),
+        'global_mem_cacheline_size': ('cl_uint', DEVICE_GLOBAL_MEM_CACHELINE_SIZE),
+        'global_mem_cache_size': ('cl_ulong', DEVICE_GLOBAL_MEM_CACHE_SIZE),
+        'global_mem_size': ('cl_ulong', DEVICE_GLOBAL_MEM_SIZE),
+        'max_constant_buffer_size': ('cl_ulong', DEVICE_MAX_CONSTANT_BUFFER_SIZE),
+        'max_constant_args': ('cl_uint', DEVICE_MAX_CONSTANT_ARGS),
+        'local_mem_type': ('cl_uint', DEVICE_LOCAL_MEM_TYPE),
+        'error_correction_support': ('cl_bool', DEVICE_ERROR_CORRECTION_SUPPORT),
+        'profiling_timer_resolution': ('c_size_t', DEVICE_PROFILING_TIMER_RESOLUTION),
+        'endian_little': ('cl_bool', DEVICE_ENDIAN_LITTLE),
+        'available': ('cl_bool', DEVICE_AVAILABLE),
+        'compiler_available': ('cl_bool', DEVICE_COMPILER_AVAILABLE),
+        'execution_capabilities': ('cl_ulong', DEVICE_EXECUTION_CAPABILITIES),
+        'queue_properties': ('cl_ulong', DEVICE_QUEUE_PROPERTIES),
+    }
+    str_info_id = {
+        'name': DEVICE_NAME,
+        'vendor': DEVICE_VENDOR,
+        'version': DEVICE_VERSION,
+        'profile': DEVICE_PROFILE,
+        'extensions': DEVICE_EXTENSIONS,
+    }
 
     def __cinit__(self, id):
         self.id = id
-        self.infos = {}
     def __getattr__(self, name):
+        cdef int err
+        cdef cl_ulong ul_ans
+        cdef cl_uint ui_ans
+        cdef InfoGrabber func = clGetDeviceInfo
+        cdef size_t *svec
+
+        if name in self.str_info_id:
+            return get_info(self.id, self.str_info_id[name], func)
+        if name in self.info_id:
+            tp, info_id = self.info_id[name]
+            if tp == 'cl_ulong':
+                err = func(self.id, info_id, sizeof(cl_ulong), <void *> &ul_ans, NULL)
+                if err:
+                    raise OpenCLError(err)
+                return ul_ans
+            elif tp == 'cl_uint':
+                err = func(self.id, info_id, sizeof(cl_uint), <void *> &ui_ans, NULL)
+                if err:
+                    raise OpenCLError(err)
+                return ui_ans
+            else:
+                raise OpenCLError('Unknown info type: %s' % tp)
+        if name == 'max_work_item_sizes':
+            sz = self.max_work_item_dimensions
+            svec = <size_t *> malloc (sz * sizeof (size_t))
+            err = func(self.id, DEVICE_MAX_WORK_ITEM_SIZES,
+                       sz * sizeof(size_t), svec, NULL)
+            if err:
+                raise OpenCLError(err)
+            rans = []
+            for i in range(sz):
+                rans.append(svec[i])
+            free(svec)
+            return rans
         raise AttributeError, name
     def c_obj(self):
         return self.id
@@ -633,14 +726,6 @@ def get_device_ids(platform, type=DEVICE_TYPE_DEFAULT):
     free(devices)
 
     return devs
-
-def device_name(device):
-    cdef char dev_str[1024]
-    err = clGetDeviceInfo(<cl_device_id>device, DEVICE_NAME, 1024,
-                          dev_str, <size_t *>0)
-    if err != 0:
-        raise OpenCLError(err)
-    return str(dev_str)
 
 cdef class Context:
     cdef cl_context context
@@ -1148,10 +1233,8 @@ def get_devices(platform=None, type=DEVICE_TYPE_ALL):
     err = clGetDeviceIDs(platform.id, type, dev_count, data, &dev_count)
     if err:
         raise OpenCLError()
-    #print 'Device:', [x for x in data]
-    #return [Device(x) for x in data]
     ans = []
-    for i in dev_count:
+    for i in range(dev_count):
         ans.append(Device(data[i]))
     free(data)
     return ans
