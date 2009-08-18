@@ -1,0 +1,12 @@
+Python::OpenCL aims at being an easy to use Python wrapper around the OpenCL.
+
+It is licensed under the GPLv3 or any later version. The license information
+can be found in the file named COPYING.
+
+Python::OpenCL websites of interests include:
+
+- Homepage at http://python-opencl.next-touch.com/
+- Project page at http://gitorious.org/python-opencl
+- ML at https://listes.lautre.net/cgi-bin/mailman/listinfo/python-opencl
+
+Python::OpenCL should be nicknamed as python-opencl.

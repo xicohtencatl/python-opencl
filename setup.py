@@ -20,7 +20,7 @@ opencl_module = Extension('opencl', ['opencl.pyx'],
                          )
 
 setup(name='python-opencl',
-      version='0.2',
+      version='0.2.1',
       author='In Tlapatlac',
       author_email='tlapatlac@next-touch.com',
       description='OpenCL wrapper module',
