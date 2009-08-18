@@ -955,7 +955,36 @@ cdef class CommandQueue:
                 c_wl[i] = wait_list[i]
         err = clEnqueueWriteBuffer(self.queue, buffer.c_obj(), blocking,
                                    0, data.nbytes, PyArray_DATA(data),
-                                   0, NULL, &evt)
+                                   c_wl_len, c_wl, &evt)
+        if wait_list is not None:
+            free(c_wl)
+        if err != 0:
+            raise OpenCLError(err)
+        # Return the associated Event object
+        return Event(evt)
+
+    def enqueue_copy_buffer(self, dst, src, blocking=True,
+                            wait_list=None):
+        '''
+        Copy the data of buffer src into buffer dst.
+
+        :param blocking: Indicate if the operation is blocking.
+        :return: An Event object referencing the command.
+        '''
+        cdef int err
+        cdef cl_event evt
+        cdef cl_event *c_wl = NULL
+        cdef int c_wl_len = 0
+
+        # Manage wait lists
+        if wait_list is not None:
+            c_wl_len = len(wait_list)
+            c_wl = <cl_event *> malloc(c_wl_len * sizeof(cl_event))
+            for i in range(c_wl_len):
+                c_wl[i] = wait_list[i]
+        err = clEnqueueCopyBuffer(self.queue, src.c_obj(), dst.c_obj(),
+                                  0, 0, dst.nbytes,
+                                  c_wl_len, c_wl, &evt)
         if wait_list is not None:
             free(c_wl)
         if err != 0:
