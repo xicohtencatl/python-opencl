@@ -993,12 +993,16 @@ cdef class CommandQueue:
         return Event(evt)
 
     def enqueue_nd_range_kernel(self, krnl, global_work_size=None,
-                                local_work_size=None):
+                                local_work_size=None, wait_list=None):
         '''
         Enqueue a command to execute a kernel on a device.
         '''
+        cdef cl_event evt
+        cdef cl_event *c_wl = NULL
+        cdef int c_wl_len = 0
         cdef size_t *c_gws
         cdef size_t *c_lws
+
         work_dim = 0
         if global_work_size:
             work_dim = len(global_work_size)
@@ -1017,13 +1021,22 @@ cdef class CommandQueue:
         args = [hex(self.queue), hex(krnl.c_obj), work_dim,
                 None, global_work_size, local_work_size, 0, None, None]
         regs = 'rdi rsi rdx rcx r8 r9'.split()
+        # Manage wait lists
+        if wait_list is not None:
+            c_wl_len = len(wait_list)
+            c_wl = <cl_event *> malloc(c_wl_len * sizeof(cl_event))
+            for i in range(c_wl_len):
+                c_wl[i] = wait_list[i]
         err = clEnqueueNDRangeKernel(self.queue, krnl.c_obj, work_dim,
                                      NULL, c_gws, c_lws,
-                                     0, NULL, NULL)
+                                     c_wl_len, c_wl, &evt)
+        if wait_list is not None:
+            free(c_wl)
         if c_gws:
             free(c_gws)
         if err:
             raise OpenCLError(err)
+        return Event(evt)
 
 
 cdef class Buffer:
@@ -1111,28 +1124,38 @@ cdef class Buffer:
 cdef class Program:
     cdef cl_program prog
     cdef bool built
+
+    @staticmethod
+    def from_file(path, context=None):
+        '''
+        Create a new program by loading the source code in the given file.
+
+        :param path: File from which to read the source code.
+        '''
+        fp = open(path)
+        data = fp.read()
+        fp.close()
+        return Program(data, context)
     
-    def __cinit__(self, src, Context context=None):
+    def __cinit__(self, src, devices=None, Context context=None):
         '''
         Create a new program with the given source.
         '''
         cdef cl_int err
+        cdef char* c_src[1]
         if context is None:
             context = default_context()
-        # Make sure src is a list
-        if isinstance(src, str) or isinstance(src, unicode):
-            src = [src]
-        # Cast the list to a char **
-        #c_src = (c_char_p * len(src))(*src)
-        #*c_src = cython.pointer(char)[len(src)]
-        cdef char ** c_src
-        c_src = <char **> malloc (len(src) * sizeof (char *))
-        for i, s in enumerate(src):
-            c_src[i] = s
-        # Create the OpenCL program
-        self.built = False
-        self.prog = clCreateProgramWithSource(context.context, len(src),
-                                              c_src, <size_t *>0, &err)
+        # Build a Program from character string
+        if devices is None:
+            # Cast the list to a char **
+            c_src[0] = src
+            # Create the OpenCL program
+            self.built = False
+            self.prog = clCreateProgramWithSource(context.context, 1,
+                                                  c_src, <size_t *>0, &err)
+        # Build a Program from binary
+        else:
+            exit('Binary programs not yet implemented')
         if err != 0:
             raise OpenCLError(err)
 
