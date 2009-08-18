@@ -905,7 +905,8 @@ cdef class CommandQueue:
         if err != 0:
             raise OpenCLError(err)
 
-    def enqueue_read_buffer(self, buffer, ndarray data, blocking=True):
+    def enqueue_read_buffer(self, buffer, ndarray data, blocking=True,
+                           wait_list=None):
         '''
         Read a Buffer object to host memory.
 
@@ -914,16 +915,27 @@ cdef class CommandQueue:
         '''
         cdef int err
         cdef cl_event evt
+        cdef cl_event *c_wl = NULL
+        cdef int c_wl_len = 0
 
+        # Manage wait lists
+        if wait_list is not None:
+            c_wl_len = len(wait_list)
+            c_wl = <cl_event *> malloc(c_wl_len * sizeof(cl_event))
+            for i in range(c_wl_len):
+                c_wl[i] = wait_list[i]
         err = clEnqueueReadBuffer(self.queue, buffer.c_obj(), blocking,
                                   0, data.nbytes, PyArray_DATA(data),
-                                  0, NULL, &evt)
+                                  c_wl_len, c_wl, &evt)
+        if wait_list is not None:
+            free(c_wl)
         if err != 0:
             raise OpenCLError(err)
         # Return the associated Event object
         return Event(evt)
 
-    def enqueue_write_buffer(self, buffer, ndarray data, blocking=True):
+    def enqueue_write_buffer(self, buffer, ndarray data, blocking=True,
+                            wait_list=None):
         '''
         Write to a Buffer object from host memory.
 
@@ -932,10 +944,20 @@ cdef class CommandQueue:
         '''
         cdef int err
         cdef cl_event evt
+        cdef cl_event *c_wl = NULL
+        cdef int c_wl_len = 0
 
+        # Manage wait lists
+        if wait_list is not None:
+            c_wl_len = len(wait_list)
+            c_wl = <cl_event *> malloc(c_wl_len * sizeof(cl_event))
+            for i in range(c_wl_len):
+                c_wl[i] = wait_list[i]
         err = clEnqueueWriteBuffer(self.queue, buffer.c_obj(), blocking,
                                    0, data.nbytes, PyArray_DATA(data),
                                    0, NULL, &evt)
+        if wait_list is not None:
+            free(c_wl)
         if err != 0:
             raise OpenCLError(err)
         # Return the associated Event object
