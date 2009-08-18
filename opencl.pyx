@@ -486,6 +486,7 @@ cdef extern from "CL/cl.h":
     cl_int clEnqueueNDRangeKernel(cl_command_queue, cl_kernel, cl_uint, size_t
                                   *, size_t *, size_t *, cl_uint, void *, void
                                   *)
+    cl_int clEnqueueTask(cl_command_queue, cl_kernel, cl_uint, void *, void *)
 
 
 class OpenCLError(BaseException):
@@ -732,6 +733,21 @@ cdef class Event:
         'end': ('cl_ulong', PROFILING_COMMAND_END),
     }
     cdef public cl_event c_obj
+
+    @staticmethod
+    def wait_for(cls, events):
+        '''
+        Wait on the host thread for commands to be completed.
+        '''
+        cdef cl_event *c_events
+        c_events = <cl_event *> malloc(len(events) * sizeof(cl_event))
+        for i in range(len(events)):
+            c_events[i] = events[i]
+        err = clWaitForEvents(<cl_uint> len(events), c_events)
+        free(c_events)
+        if err != 0:
+            raise OpenCLError(err)
+
     def __cinit__(self, id):
         self.c_obj = id
     def __getattr__(self, name):
@@ -755,6 +771,8 @@ cdef class Event:
             else:
                 raise OpenCLError('Unknown info type: %s' % tp)
         raise AttributeError, name
+    def wait(self):
+        Event.wait_for(self)
 
 cdef class Context:
     cdef cl_context context
@@ -1034,6 +1052,28 @@ cdef class CommandQueue:
             free(c_wl)
         if c_gws:
             free(c_gws)
+        if err:
+            raise OpenCLError(err)
+        return Event(evt)
+
+    def enqueue_task(self, krnl, wait_list=None):
+        '''
+        Enqueue a command to execute a simple kernel on a device.
+        '''
+        cdef cl_event evt
+        cdef cl_event *c_wl = NULL
+        cdef int c_wl_len = 0
+
+        # Manage wait lists
+        if wait_list is not None:
+            c_wl_len = len(wait_list)
+            c_wl = <cl_event *> malloc(c_wl_len * sizeof(cl_event))
+            for i in range(c_wl_len):
+                c_wl[i] = wait_list[i]
+        err = clEnqueueTask(self.queue, krnl.c_obj,
+                            c_wl_len, c_wl, &evt)
+        if wait_list is not None:
+            free(c_wl)
         if err:
             raise OpenCLError(err)
         return Event(evt)
