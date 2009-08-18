@@ -32,7 +32,7 @@ Contents:
 
    install
    tutorial
-   examples
+   manual
    links
    fullapi
 
