@@ -728,9 +728,12 @@ def get_device_ids(platform, type=DEVICE_TYPE_DEFAULT):
     return devs
 
 cdef class Event:
-    info_id = {
+    profiling_info_id = {
         'start': ('cl_ulong', PROFILING_COMMAND_START),
         'end': ('cl_ulong', PROFILING_COMMAND_END),
+    }
+    event_info_id = {
+        'status': ('cl_int', EVENT_COMMAND_EXECUTION_STATUS),
     }
     cdef public cl_event c_obj
 
@@ -754,10 +757,12 @@ cdef class Event:
         cdef int err
         cdef cl_ulong ul_ans
         cdef cl_uint ui_ans
-        cdef InfoGrabber func = clGetEventProfilingInfo
+        cdef cl_int i_ans
+        cdef InfoGrabber func
         cdef size_t *svec
-        if name in self.info_id:
-            tp, info_id = self.info_id[name]
+        if name in self.profiling_info_id:
+            func = clGetEventProfilingInfo
+            tp, info_id = self.profiling_info_id[name]
             if tp == 'cl_ulong':
                 err = func(self.c_obj, info_id, sizeof(cl_ulong), <void *> &ul_ans, NULL)
                 if err:
@@ -768,6 +773,16 @@ cdef class Event:
                 if err:
                     raise OpenCLError(err)
                 return ui_ans
+            else:
+                raise OpenCLError('Unknown info type: %s' % tp)
+        elif name in self.event_info_id:
+            func = clGetEventInfo
+            tp, info_id = self.event_info_id[name]
+            if tp == 'cl_int':
+                err = func(self.c_obj, info_id, sizeof(cl_int), <void *> &i_ans, NULL)
+                if err:
+                    raise OpenCLError(err)
+                return i_ans
             else:
                 raise OpenCLError('Unknown info type: %s' % tp)
         raise AttributeError, name
