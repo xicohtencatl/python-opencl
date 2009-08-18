@@ -46,9 +46,6 @@ class TestOpenCL(unittest.TestCase):
         h_idata = arange(SZ, dtype='float32')
         buf = opencl.Buffer(h_idata)
         h_odata = buf.read()
-        for i in range(SZ):
-            print h_idata[i], h_odata[i]
-        print h_odata.shape, h_odata.dtype
         self.assert_((0. + (h_idata == h_odata)).prod())
 
     def test_buffer_read_write(self):
@@ -59,14 +56,14 @@ class TestOpenCL(unittest.TestCase):
         o = buf.read()
         self.assert_((0. + (b == o)).prod())
 
-    #def test_buffer_copy(self):
-    #    a = random.random(self.SIZE).astype('float32')
-    #    b = zeros_like(a)
-    #    b1 = opencl.Buffer(a)
-    #    b2 = opencl.Buffer(b)
-    #    b2.copy(b1)
-    #    o = b2.read()
-    #     self.assert_((0. + (a == o)).prod())
+    def test_buffer_copy(self):
+        a = random.random(self.SIZE).astype('float32')
+        b = zeros_like(a)
+        b1 = opencl.Buffer(a)
+        b2 = opencl.Buffer(b)
+        b2.copy(b1)
+        o = b2.read()
+        self.assert_((0. + (a == o)).prod())
 
 if __name__ == '__main__':
     unittest.main()
