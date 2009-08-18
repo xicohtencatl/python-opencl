@@ -726,6 +726,36 @@ def get_device_ids(platform, type=DEVICE_TYPE_DEFAULT):
 
     return devs
 
+cdef class Event:
+    info_id = {
+        'start': ('cl_ulong', PROFILING_COMMAND_START),
+        'end': ('cl_ulong', PROFILING_COMMAND_END),
+    }
+    cdef public cl_event c_obj
+    def __cinit__(self, id):
+        self.c_obj = id
+    def __getattr__(self, name):
+        cdef int err
+        cdef cl_ulong ul_ans
+        cdef cl_uint ui_ans
+        cdef InfoGrabber func = clGetEventProfilingInfo
+        cdef size_t *svec
+        if name in self.info_id:
+            tp, info_id = self.info_id[name]
+            if tp == 'cl_ulong':
+                err = func(self.c_obj, info_id, sizeof(cl_ulong), <void *> &ul_ans, NULL)
+                if err:
+                    raise OpenCLError(err)
+                return ul_ans
+            elif tp == 'cl_uint':
+                err = func(self.c_obj, info_id, sizeof(cl_uint), <void *> &ui_ans, NULL)
+                if err:
+                    raise OpenCLError(err)
+                return ui_ans
+            else:
+                raise OpenCLError('Unknown info type: %s' % tp)
+        raise AttributeError, name
+
 cdef class Context:
     cdef cl_context context
     cdef object devs
@@ -876,20 +906,40 @@ cdef class CommandQueue:
             raise OpenCLError(err)
 
     def enqueue_read_buffer(self, buffer, ndarray data, blocking=True):
+        '''
+        Read a Buffer object to host memory.
+
+        :param blocking: Indicate if the operation is blocking.
+        :return: An Event object referencing the command.
+        '''
         cdef int err
+        cdef cl_event evt
+
         err = clEnqueueReadBuffer(self.queue, buffer.c_obj(), blocking,
                                   0, data.nbytes, PyArray_DATA(data),
-                                  0, NULL, NULL)
+                                  0, NULL, &evt)
         if err != 0:
             raise OpenCLError(err)
+        # Return the associated Event object
+        return Event(evt)
 
     def enqueue_write_buffer(self, buffer, ndarray data, blocking=True):
+        '''
+        Write to a Buffer object from host memory.
+
+        :param blocking: Indicate if the operation is blocking.
+        :return: An Event object referencing the command.
+        '''
         cdef int err
+        cdef cl_event evt
+
         err = clEnqueueWriteBuffer(self.queue, buffer.c_obj(), blocking,
                                    0, data.nbytes, PyArray_DATA(data),
-                                   0, NULL, NULL)
+                                   0, NULL, &evt)
         if err != 0:
             raise OpenCLError(err)
+        # Return the associated Event object
+        return Event(evt)
 
     def enqueue_nd_range_kernel(self, krnl, global_work_size=None,
                                 local_work_size=None):
