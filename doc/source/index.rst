@@ -17,7 +17,7 @@ Do not hesitate to clone `Python::OpenCL`_::
 
   git clone git://gitorious.org/python-opencl/python-opencl.git
 
-`Homepage`_ | `Project`_ | `Wiki`_ | `Download`_ | `Mailing List`_
+`Homepage`_ | `Project`_ | `Download`_ | `Mailing List`_ | `F.A.Q.`_
 
 A distributed bug tracker, `ticgit`_, is used to store tickets as a branch inside the
 Git repository.
@@ -34,6 +34,7 @@ Contents:
    install
    tutorial
    manual
+   faq
    links
    fullapi
 
@@ -50,6 +51,7 @@ Indices and tables
 .. _Download: http://python-opencl.next-touch.com/files/
 .. _Project: http://gitorious.org/python-opencl
 .. _Wiki: http://gitorious.org/python-opencl/pages/Home
+.. _`F.A.Q.`: faq.html
 .. _Contact: mailto:tlapatlac@next-touch.com
 .. _ticgit: http://wiki.github.com/schacon/ticgit
 .. _`Mailing List`: https://listes.lautre.net/cgi-bin/mailman/listinfo/python-opencl 

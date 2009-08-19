@@ -26,8 +26,8 @@ of events to be completed.
 Providing dependencies between the commands enqueued can be done
 by passing a list of required events thanks to the ``wait_list``
 attribute of enqueueing functions.
-
 ::
+
   queue = default_queue()
   evt_1 = queue.enqueue_xxx(...)
   evt_2 = queue.enqueue_yyy(...)
