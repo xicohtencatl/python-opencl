@@ -3,7 +3,7 @@
 '''
 Cython wrapper around the OpenCL library.
 
-:author: In Tlapatlac <tlapatlac@next-touch.com>
+:author: Xīcòtēncatl <xicohtencatl@next-touch.com>
 '''
 
 import numpy
