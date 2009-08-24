@@ -21,13 +21,8 @@ opencl_module = Extension('opencl', ['opencl.pyx'],
 
 setup(name='python-opencl',
       version='0.2.1',
-<<<<<<< HEAD
-      author='In Tlapatlac',
-      author_email='tlapatlac@next-touch.com',
-=======
       author='Xīcòtēncatl',
       author_email='xicohtencatl@next-touch.com',
->>>>>>> kiribati/master
       description='OpenCL wrapper module',
       url='http://python-opencl.next-touch.com',
       classifiers=[

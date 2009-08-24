@@ -1,10 +1,10 @@
 F.A.Q.
 ======
-About OpenCL and Python::OpenCL
--------------------------------
-What are Python::OpenCL and OpenCL?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-`Python::OpenCL`_ aims at being an easy to use pythonic wrapper around the
+About OpenCL and python-opencl
+------------------------------
+What are python-opencl and OpenCL?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+`python-opencl`_ aims at being an easy to use pythonic wrapper around the
 `OpenCL`_ standard library. `OpenCL`_ is a specification for computing on
 heterogenous devices such as GPUs or multi-core CPUs. By using highly
 parallel devices, you can greatly improve the execution speed of your
@@ -51,5 +51,5 @@ call which will used in parallel by the device.
 
 For a gentle introduction see the Tutorial.
 
-.. _`Python::OpenCL`: http://python-opencl.next-touch.com
+.. _python-opencl: http://python-opencl.next-touch.com
 .. _OpenCL: http://www.khronos.org/opencl/

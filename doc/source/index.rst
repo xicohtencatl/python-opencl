@@ -1,19 +1,19 @@
-.. Python::OpenCL documentation master file, created by
+.. python-opencl documentation master file, created by
    sphinx-quickstart on Sat Jun 20 01:15:17 2009.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Python::OpenCL's documentation!
-==========================================
+Welcome to python-opencl's documentation!
+=========================================
 
 `OpenCL`_ is a standard for parallel programming on heterogeneous devices
 including CPUs, GPUs, and others processors. It provides a common language
 C-like language for executing code on those devices, as well as APIs to
 setup the computations.
-`Python::OpenCL`_ aims at being an easy to use Python wrapper around the `OpenCL`_ library.
-`Python::OpenCL`_ is licensed under the `GPL`_ version 3 or later.
+`python-opencl`_ aims at being an easy to use Python wrapper around the `OpenCL`_ library.
+`python-opencl`_ is licensed under the `GPL`_ version 3 or later.
 
-Do not hesitate to clone `Python::OpenCL`_::
+Do not hesitate to clone `python-opencl`_::
 
   git clone git://gitorious.org/python-opencl/python-opencl.git
 
@@ -21,10 +21,8 @@ Do not hesitate to clone `Python::OpenCL`_::
 
 A distributed bug tracker, `ticgit`_, is used to store tickets as a branch inside the
 Git repository.
-`Python::OpenCL`_ has been tested both on GPUs and CPUs with the OpenCL libraries from
+`python-opencl`_ has been tested both on GPUs and CPUs with the OpenCL libraries from
 `NVIDIA`_ and from `AMD (ATI Stream)`_.
-
-Slug name: ``python-opencl``
 
 Contents:
 
@@ -45,7 +43,7 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-.. _`Python::OpenCL`: http://python-opencl.next-touch.com
+.. _python-opencl: http://python-opencl.next-touch.com
 .. _Homepage: http://python-opencl.next-touch.com
 .. _OpenCL: http://www.khronos.org/opencl/
 .. _Download: http://python-opencl.next-touch.com/files/

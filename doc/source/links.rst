@@ -1,8 +1,8 @@
 Links
 =====
 
-Using `Python::OpenCL`_
------------------------
+Using `python-opencl`_
+----------------------
 `Mersenne Twisters in OpenCL`_ by Jay Cornwall
 
 OpenCL tutorial
@@ -26,7 +26,7 @@ Other wrappers
 `Ruby-OpenCL`_ provides a Ruby wrapper for OpenCL.
 
 
-.. _`Python::OpenCL`: http://python-opencl.next-touch.com
+.. _python-opencl: http://python-opencl.next-touch.com
 
 .. _`Mersenne Twisters in OpenCL`: http://www.jcornwall.me.uk/2009/07/mersenne-twisters-in-opencl-and-python/
 

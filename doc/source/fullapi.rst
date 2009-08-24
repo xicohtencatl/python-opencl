@@ -1,6 +1,6 @@
-=======================
-Full Python::OpenCL API
-=======================
+======================
+Full python-opencl API
+======================
 
 .. currentmodule:: opencl
 

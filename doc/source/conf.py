@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Python::OpenCL documentation build configuration file, created by
+# python-opencl documentation build configuration file, created by
 # sphinx-quickstart on Sat Jun 20 01:15:17 2009.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -37,7 +37,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Python::OpenCL'
+project = u'python-opencl'
 copyright = u'2009, Xīcòtēncatl'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -172,7 +172,7 @@ htmlhelp_basename = 'python-opencl-doc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ('index', 'python-opencl.tex', u'Python::OpenCL Documentation',
+    ('index', 'python-opencl.tex', u'python-opencl Documentation',
      u'In Tlapatlac', 'manual'),
 ]
 
